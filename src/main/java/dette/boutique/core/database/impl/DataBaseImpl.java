@@ -1,10 +1,12 @@
-package dette.boutique.core.database;
+package dette.boutique.core.database.impl;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import dette.boutique.core.database.DataBase;
 
 public abstract class DataBaseImpl<T> implements DataBase<T> {
     private final String URL = "jdbc:mysql://localhost:3306/dette_boutique";

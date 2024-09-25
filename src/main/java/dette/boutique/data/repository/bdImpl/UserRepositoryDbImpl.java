@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import dette.boutique.core.database.DataBaseImpl;
+import dette.boutique.core.database.impl.DataBaseImpl;
 import dette.boutique.core.database.impl.RepositoryDbImpl;
 import dette.boutique.data.entities.Client;
 import dette.boutique.data.entities.User;

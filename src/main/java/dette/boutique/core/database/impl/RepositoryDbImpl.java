@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import dette.boutique.core.database.DataBaseImpl;
 import dette.boutique.core.database.Repository;
 
 public abstract class RepositoryDbImpl<T> extends DataBaseImpl<T> implements Repository<T> {
