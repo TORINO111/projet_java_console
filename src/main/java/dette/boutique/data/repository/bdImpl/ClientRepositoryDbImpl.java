@@ -8,8 +8,8 @@ import java.util.List;
 
 import dette.boutique.core.database.impl.RepositoryDbImpl;
 import dette.boutique.data.entities.Client;
+import dette.boutique.data.entities.Role;
 import dette.boutique.data.entities.User;
-import dette.boutique.data.enums.Role;
 import dette.boutique.data.repository.ClientRepository;
 import dette.boutique.data.repository.UserRepository;
 
@@ -21,10 +21,10 @@ public class ClientRepositoryDbImpl extends RepositoryDbImpl<Client> implements 
         this.userRepository = userRepository;
     }
 
-    private final String INSERT_QUERY = String
-            .format("INSERT INTO %S (nom, prenom, telephone, adresse, user_id) VALUES (?, ?, ?, ?, ?)", tableName);
-    private final String INSERT_WITHOUT_USER_QUERY = String
-            .format("INSERT INTO %S (nom, prenom, telephone, adresse) VALUES (?, ?, ?, ?)", tableName);
+    private final String INSERT_QUERY ="INSERT INTO client (nom, prenom, telephone, adresse, user_id) VALUES (?, ?, ?, ?, ?)";
+    // private final String INSERT_WITHOUT_USER_QUERY = String
+    // .format("INSERT INTO %S (nom, prenom, telephone, adresse) VALUES (?, ?, ?,
+    // ?)", tableName);
     private static final String SELECT_QUERY = "SELECT client.id AS client_id, client.nom AS client_nom, client.prenom AS client_prenom, "
             + "client.telephone AS client_telephone, client.adresse AS client_adresse, "
             + "user.id AS user_id, user.nom AS user_nom, user.prenom AS user_prenom, "
@@ -67,40 +67,38 @@ public class ClientRepositoryDbImpl extends RepositoryDbImpl<Client> implements 
     }
 
     @Override
-    public boolean insertWithoutUser(Client client) {
-        try {
-            connexion();
-            PreparedStatement pstmt = connection.prepareStatement(INSERT_WITHOUT_USER_QUERY);
-            pstmt.setString(1, client.getNom());
-            pstmt.setString(2, client.getPrenom());
-            pstmt.setString(3, client.getTelephone());
-            pstmt.setString(4, client.getAdresse());
-            return executeUpdate(pstmt.toString());
-        } catch (SQLException e) {
-            System.out.println("Erreur lors de l'insertion du client sans utilisateur : " + e.getMessage());
-            return false;
-        } finally {
-            deconnexion();
-        }
-    }
-
-    @Override
     public List<Client> selectAll() {
         List<Client> listClients = new ArrayList<>();
+        ResultSet resultSet = null;
         try {
             connexion();
-            ResultSet resultSet = executeQuery(SELECT_QUERY);
-            if (resultSet != null) {
-                while (resultSet.next()) {
-                    listClients.add(mapResultSetToClient(resultSet));
-                }
-                resultSet.close();
+            this.init(SELECT_QUERY);
+
+            resultSet = ps.executeQuery();
+
+            while (resultSet.next()) {
+                listClients.add(convertToObject(resultSet));
             }
         } catch (SQLException e) {
             System.out.println("Erreur de connexion à la base de données : " + e.getMessage());
         } finally {
-            deconnexion();
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (ps != null) {
+                    ps.close();
+                }
+            } catch (SQLException e) {
+                System.out.println("Erreur lors de la fermeture des ressources : " + e.getMessage());
+            }
+            try {
+                deconnexion();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
+
         return listClients;
     }
 
@@ -109,37 +107,40 @@ public class ClientRepositoryDbImpl extends RepositoryDbImpl<Client> implements 
         Client client = null;
         try {
             connexion();
-            PreparedStatement pstmt = connection.prepareStatement(SELECT_CLIENT_QUERY);
-            pstmt.setString(1, telephone);
-            ResultSet resultSet = pstmt.executeQuery();
+            this.init(SELECT_CLIENT_QUERY);
 
+            ResultSet resultSet = ps.executeQuery();
             if (resultSet.next()) {
-                client = mapResultSetToClient(resultSet);
+                client = convertToObject(resultSet);
             }
-
-            resultSet.close();
-            pstmt.close();
         } catch (SQLException e) {
             System.out.println("Erreur lors de la récupération du client : " + e.getMessage());
         } finally {
-            deconnexion();
+            try {
+                deconnexion();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
         return client;
     }
 
     @Override
-    public boolean updateUserForClient(Client client) {
+    public void updateUserForClient(Client client) {
         try {
             connexion();
-            PreparedStatement pstmt = connection.prepareStatement(UPDATE_USER_CLIENT);
-            pstmt.setInt(1, client.getUser().getId());
-            pstmt.setInt(2, client.getId());
-            return executeUpdate(pstmt.toString());
+            this.init(UPDATE_USER_CLIENT);
+            ps.setInt(1, client.getUser().getId());
+            ps.setInt(2, client.getId());
+            this.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Erreur lors de la mise à jour de l'utilisateur du client : " + e.getMessage());
-            return false;
         } finally {
-            deconnexion();
+            try {
+                deconnexion();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -156,7 +157,13 @@ public class ClientRepositoryDbImpl extends RepositoryDbImpl<Client> implements 
         }
     }
 
-    private Client mapResultSetToClient(ResultSet resultSet) throws SQLException {
+    @Override
+    public String generateSql(Client element) {
+        throw new UnsupportedOperationException("Unimplemented method 'generateSql'");
+    }
+
+    @Override
+    public Client convertToObject(ResultSet resultSet) throws SQLException {
         int clientId = resultSet.getInt("client_id");
         String nomClient = resultSet.getString("client_nom");
         String prenomClient = resultSet.getString("client_prenom");
@@ -170,26 +177,9 @@ public class ClientRepositoryDbImpl extends RepositoryDbImpl<Client> implements 
                     resultSet.getString("user_prenom"),
                     resultSet.getString("user_login"),
                     resultSet.getString("user_password"),
-                    Role.valueOf(resultSet.getString("role_nom")));
+                    Role.findRoleByName(resultSet.getString("role_nom")));
         }
 
-        return new Client(clientId, nomClient, prenomClient, telephone, adresse, user);
-    }
 
-    @Override
-    public String generateSql(Client element) {
-        throw new UnsupportedOperationException("Unimplemented method 'generateSql'");
-    }
-
-    @Override
-    public Client convertToObject(Client objet) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'convertToObject'");
-    }
-
-    @Override
-    public Client convertToObject(ResultSet rs) throws SQLException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'convertToObject'");
-    }
+        return new Client(clientId, nomClient, prenomClient, telephone, adresse, user);    }
 }

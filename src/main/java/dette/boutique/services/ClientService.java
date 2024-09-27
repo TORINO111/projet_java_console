@@ -18,10 +18,6 @@ public class ClientService implements Item<Client> {
         clientRepository.insert(client);
     }
 
-    public void createWithoutUser(Client client) {
-        clientRepository.insertWithoutUser(client);
-    };
-
     public boolean updateUserForClient(Client client) {
         clientRepository.updateUserForClient(client);
         return true;
@@ -46,7 +42,7 @@ public class ClientService implements Item<Client> {
     }
 
     public Client findClient(String telephone) {
-        return list().stream()
+        return clientRepository.selectAll().stream()
                 .filter(client -> client.getTelephone().compareTo(telephone) == 0)
                 .findFirst()
                 .orElse(null);

@@ -59,7 +59,7 @@ public class ClientView extends ViewImpl<Client> {
         String adresse = saisieAdresse();
         String telephone = saisieTelephone();
         Client client = new Client(nom, prenom, adresse, telephone);
-        clientService.createWithoutUser(client);
+        clientService.create(client);
     }
 
     public Client choisirCLient() {
@@ -91,6 +91,7 @@ public class ClientView extends ViewImpl<Client> {
                 } else {
                     isValide = true;
                     System.out.println("Nom accepté !");
+                    System.out.println("---------------------------");
                 }
             } catch (InputMismatchException e) {
                 System.out.println("Veuillez saisir des caractères valides.");
@@ -118,6 +119,8 @@ public class ClientView extends ViewImpl<Client> {
                 } else {
                     isValide = true;
                     System.out.println("Prénom accepté !");
+                    System.out.println("---------------------------");
+                    
                 }
             } catch (InputMismatchException e) {
                 System.out.println("Veuillez saisir des caractères valides.");
@@ -147,6 +150,7 @@ public class ClientView extends ViewImpl<Client> {
                 } else {
                     isValide = true;
                     System.out.println("Numéro accepté!");
+                    System.out.println("---------------------------");
                 }
             } catch (InputMismatchException e) {
                 System.out.println("Veuillez saisir des caractères valides.");

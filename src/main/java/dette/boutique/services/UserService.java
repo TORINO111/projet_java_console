@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Scanner;
 
 import dette.boutique.Main;
+import dette.boutique.data.entities.Role;
 import dette.boutique.data.entities.User;
-import dette.boutique.data.enums.Role;
 import dette.boutique.data.repository.UserRepository;
 
 public class UserService {
@@ -15,11 +15,6 @@ public class UserService {
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
-
-    public boolean createWithoutUser(User user) {
-        userRepository.insertWithoutClient(user);
-        return true;
-    };
 
     public void create(User user) {
         userRepository.insert(user);

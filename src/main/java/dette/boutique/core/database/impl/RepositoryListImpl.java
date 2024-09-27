@@ -9,9 +9,8 @@ public abstract class RepositoryListImpl<T> implements Repository<T> {
     protected List<T> data = new ArrayList<>();
 
     @Override
-    public boolean insert(T element) {
+    public void insert(T element) {
         data.add(element);
-        return true;
     }
 
     @Override

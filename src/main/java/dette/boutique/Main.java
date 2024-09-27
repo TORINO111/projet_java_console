@@ -7,18 +7,18 @@ import java.util.Scanner;
 import dette.boutique.Views.ArticleView;
 import dette.boutique.Views.ClientView;
 import dette.boutique.Views.UserView;
-import dette.boutique.services.ArticleService;
-import dette.boutique.services.ClientService;
 import dette.boutique.core.factory.Factory;
 import dette.boutique.data.entities.Client;
+import dette.boutique.data.entities.Role;
 import dette.boutique.data.entities.User;
-import dette.boutique.data.enums.Role;
 import dette.boutique.data.repository.ArticleRepository;
+import dette.boutique.data.repository.ClientRepository;
 import dette.boutique.data.repository.DetteRepository;
 import dette.boutique.data.repository.UserRepository;
 import dette.boutique.data.repository.bdImpl.ArticleRepositoryDbImpl;
 import dette.boutique.data.repository.listImpl.DetteRepositoryListImpl;
-import dette.boutique.data.repository.listImpl.UserRepositoryListImpl;
+import dette.boutique.services.ArticleService;
+import dette.boutique.services.ClientService;
 import dette.boutique.services.DetteService;
 import dette.boutique.services.UserService;
 
@@ -31,13 +31,14 @@ public class Main {
 
     public static void main(String[] args) {
         ArticleRepository articleRepository = new ArticleRepositoryDbImpl();
-        UserRepository userRepository = new UserRepositoryListImpl();
+        UserRepository userRepository = Factory.getinstanceUserRepository();
         DetteRepository detteRepository = new DetteRepositoryListImpl();
+        ClientRepository clientRepository = Factory.getinstanceClientRepository(userRepository);
 
         ArticleService articleService = new ArticleService(articleRepository);
-        ClientService clientService = new ClientService(Factory.getinstanceClientRepository());
-        DetteService detteService = new DetteService(detteRepository, articleService, clientService);
         UserService userService = new UserService(userRepository);
+        ClientService clientService = new ClientService(clientRepository);
+        DetteService detteService = new DetteService(detteRepository, articleService, clientService);
 
         ArticleView articleView = new ArticleView(articleService);
         ClientView clientView = new ClientView(clientService);
@@ -46,7 +47,7 @@ public class Main {
         boolean continuer = true;
 
         while (continuer) {
-            System.out.println("\nMenu Principal :");
+            System.out.println("Menu Principal :");
             System.out.println("1. Menu client");
             System.out.println("2. Menu utilisateur");
             System.out.println("3. Quitter");
@@ -74,7 +75,7 @@ public class Main {
                                     String password1 = userView.saisiePassword();
                                     Role role1 = role.choisirRole();
                                     User user1 = new User(login1, password1, role1);
-                                    userService.createWithoutUser(user1);
+                                    userService.create(user1);
                                     System.out.println("Utilisateur créé avec succès!");
                                     break;
 
@@ -85,7 +86,8 @@ public class Main {
                                         String prenom = clientAffilié.getPrenom();
                                         String login = userView.saisieLogin();
                                         String password = userView.saisiePassword();
-                                        Role roleUser = Role.CLIENT;
+                                        Role roleUser = new Role();
+                                        roleUser.setNom("CLIENT");
 
                                         User user = new User(nom, prenom, login, password, clientAffilié, roleUser);
                                         userService.create(user);

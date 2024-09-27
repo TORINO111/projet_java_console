@@ -2,18 +2,47 @@ package dette.boutique.data.entities;
 
 import java.util.List;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Data;;
 
 @Data
+@Entity
+@Table(name = "client")
 public class Client {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    private int increment = 0;
-    private String prenom;
-    private String nom;
-    private String adresse;
+
+    @Column(length = 25, unique = true, nullable = false)
     private String telephone;
+
+    @Column(length = 255, nullable = false)
+    private String adresse;
+
+    @OneToOne
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @OneToMany(mappedBy = "client")
     private List<Dette> dettes;
+
+    @Transient()
+    private int increment = 0;
+
+    @Column(nullable = false)
+    private String nom;
+
+    @Column(nullable = false)
+    private String prenom;
 
     public Client() {
         this.user = null;

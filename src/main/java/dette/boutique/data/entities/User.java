@@ -1,19 +1,55 @@
 package dette.boutique.data.entities;
 
-import dette.boutique.data.enums.Role;
+import org.hibernate.annotations.ColumnDefault;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Data;
 
 @Data
+@Entity
+@Table(name = "user")
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    private int increment = 0;
+
+    @Column(length = 25, unique = true, nullable = false)
     private String login;
+
+    @Column(nullable = false)
     private String nom;
-    private String prenom;
-    private String password;
-    private Client client;
+
+    @ColumnDefault(value = "true")
     private boolean active;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id")
     private Role role;
+
+    @Column(nullable = false)
+    private String prenom;
+    
+    @Column(nullable = false)
+    private String password;
+
+    @OneToOne
+    @JoinColumn(name = "client_id", nullable = true)
+    private Client client;
+
+    @Transient
+    private int increment = 0;
+
 
     public User() {
         this.client = null;

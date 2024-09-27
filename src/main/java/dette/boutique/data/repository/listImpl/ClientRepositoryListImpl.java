@@ -14,15 +14,8 @@ public class ClientRepositoryListImpl extends RepositoryListImpl<Client> impleme
     }
 
     @Override
-    public boolean insertWithoutUser(Client client) {
-        data.add(client);
-        return true;
-    }
-
-    @Override
-    public boolean updateUserForClient(Client client) {
+    public void updateUserForClient(Client client) {
         client.setUser(client.getUser());
-        return true;
     }
 
 }
