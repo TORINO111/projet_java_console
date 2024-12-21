@@ -6,17 +6,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public interface DataBase<T> {
-    Connection connexion() throws SQLException;
+    Connection connexion() ;
 
-    void deconnexion() throws SQLException;
+    void deconnexion() ;
 
-    ResultSet executeQuery() throws SQLException;
+    ResultSet executeQuery() ;
 
-    int executeUpdate() throws SQLException;
+    int executeUpdate() ;
 
-    void setFields(PreparedStatement pstmt, T element) throws SQLException;
+    void setFields(PreparedStatement pstmt, T element) ;
+    
+    void setFieldsUpdate(PreparedStatement pstmt, T element) ;
 
     String generateSql(T element);
 
-    void init(String sql) throws SQLException;
+    void init(String sql) ;
+
+    Object convertToObject(ResultSet resultSet);
 }

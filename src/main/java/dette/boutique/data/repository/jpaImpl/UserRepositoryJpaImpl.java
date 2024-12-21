@@ -1,15 +1,14 @@
 package dette.boutique.data.repository.jpaImpl;
 
-import dette.boutique.core.database.impl.RepositoryJpaImpl;
+import dette.boutique.core.repository.impl.RepositoryJpaImpl;
 import dette.boutique.data.entities.User;
 import dette.boutique.data.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 
 public class UserRepositoryJpaImpl extends RepositoryJpaImpl<User> implements UserRepository {
-    protected EntityManager em;
 
-    public UserRepositoryJpaImpl(EntityManager em, Class<User> type) {
-        super(em, type);
+    public UserRepositoryJpaImpl(EntityManager em) {
+        super(User.class, em);
     }
 
     @Override

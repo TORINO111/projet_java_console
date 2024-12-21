@@ -1,0 +1,13 @@
+persistence: "JDBCPOSTGRES"
+# repository:
+#     client: dette.boutique.data.repository.jpaImpl.ClientRepositoryJpaImpl
+#     user:  dette.boutique.data.repository.jpaImpl.ClientRepositoryJpaImpl
+#     article:  dette.boutique.data.repository.jpaImpl.ArticleRepositoryJpaImpl
+#     dette:  dette.boutique.data.repository.jpaImpl.DetteRepositoryJpaImpl
+#     role:   dette.boutique.data.repository.jpaImpl.RoleRepositoryJpaImpl
+# service:
+#     client:
+#     user: dette.boutique.data.services.UserService
+#     article:  dette.boutique.data.services.ArticleService
+#     dette:  dette.boutique.data.repository.jpaImpl.DetteRepositoryJpaImpl
+#     role:   dette.boutique.data.repository.jpaImpl.RoleRepositoryJpaImpl

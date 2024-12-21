@@ -1,25 +1,22 @@
 package dette.boutique.services;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Scanner;
 
-import com.ibm.icu.text.SimpleDateFormat;
-
-import dette.boutique.Main;
-import dette.boutique.data.entities.Article;
+import dette.boutique.core.Item;
+import dette.boutique.core.Service;
 import dette.boutique.data.entities.Client;
 import dette.boutique.data.entities.Details;
 import dette.boutique.data.entities.Dette;
+import dette.boutique.data.entities.Etat;
 import dette.boutique.data.repository.DetteRepository;
 
-public class DetteService {
+public class DetteService extends Service<Dette> implements Item<Dette> {
     ArticleService articleService;
     ClientService clientService;
 
     private DetteRepository detteRepository;
-    Scanner scanner = Main.getScanner();
 
     public DetteService(DetteRepository detteRepository, ArticleService articleService, ClientService clientService) {
         this.detteRepository = detteRepository;
@@ -27,24 +24,172 @@ public class DetteService {
         this.clientService = clientService;
     }
 
+    @Override
+    public void create(Dette element) {
+        detteRepository.insert(element);
+    }
+
+    @Override
+    public void update(Dette dette) {
+        detteRepository.insert(dette);
+    }
+
     public List<Dette> list() {
         return detteRepository.selectAll();
     }
 
-    public Dette tekDette(Client client) {
-        String date = getDateSysteme();
-        List<Details> details = saisirDétailsArticles();
+    public Dette creerEtAffecterDette(Client clientDette, List<Details> panierArticles, EtatService etatService,
+            DetailsService detailsService) throws Exception {
+        // Création Dette
+        int montant = defarMontant(panierArticles);
+        String etat = "EN_COURS";
+        Etat etatEnCours = etatService.findByNom(etat);
+        System.out.println("L'etat: " + etatEnCours);
+        Dette dette = new Dette(montant, clientDette, etatEnCours);
+        create(dette);
 
-        int montant = 0;
-        for (Details détail : details) {
-            montant += détail.getPrixTotal();
+        // Assigner la dette aux détails
+        detailsService.assignerDette(panierArticles, dette);
+
+        // Mettre à jour la dette avec les détails
+        if (dette.getDetails() == null) {
+            dette.setDetails(new ArrayList<>());
+        }
+        dette.getDetails().addAll(panierArticles);
+        update(dette);
+        System.out.println("Dette créée et assignée avec succès au client: " + clientDette.getPrenom() + " "
+                + clientDette.getNom());
+        return dette;
+    }
+
+    public List<Dette> listDette(Client client) {
+        return list().stream()
+                .filter(dette -> dette.getClient() != null && dette.getClient().getId() == client.getId())
+                .toList();
+    }
+
+    public List<Dette> listeDettesSoldees() {
+        return list().stream()
+                .filter(dette -> dette.getMontantRestant() == 0)
+                .toList();
+    }
+
+    public List<Dette> listeDettesNonSoldees() {
+        return list().stream()
+                .filter(dette -> dette.getMontantRestant() > 0)
+                .toList();
+    }
+
+    public void afficherDettesEnCours() {
+        List<Dette> listDettesEnCours = listeDettesEnAttenteDeValidation();
+        if (!listDettesEnCours.isEmpty()) {
+            System.out.println("----Liste des demandes de dette en cours----");
+            afficherListe(listDettesEnCours);
+        } else {
+            System.out.println("Aucune demande de dette en cours");
+        }
+    }
+
+    public void afficherDettesAnnulees() {
+        List<Dette> listDettesAnnulees = listeDettesAnnulees();
+        if (!listDettesAnnulees.isEmpty()) {
+            System.out.println("----Liste des demandes de dette annulées----");
+            afficherListe(listDettesAnnulees);
+        } else {
+            System.out.println("Aucune dette annulée");
+        }
+    }
+
+    public List<Dette> listeDettesEnAttenteDeValidation() {
+        return list().stream()
+                .filter(dette -> dette.getEtat().getNom().compareTo("EN_ATTENTE_DE_VALIDATION") == 0)
+                .toList();
+    }
+
+    public List<Dette> listeDettesEnAttenteDeValidation(Client client) {
+        return list().stream()
+                .filter(dette -> dette.getClient() != null && dette.getClient().getId() == client.getId()
+                        && dette.getEtat() != null && "EN_ATTENTE_DE_VALIDATION".equals(dette.getEtat().getNom()))
+                .toList();
+    }
+
+    public List<Dette> listeDettesNonSoldees(Client client) {
+        return list().stream()
+                .filter(dette -> dette.getClient() != null && dette.getClient().getId() == client.getId()
+                        && dette.getEtat() != null && "EN_COURS".equals(dette.getEtat().getNom()))
+                .toList();
+    }
+
+    public Dette findById(int dette_id) {
+        return list().stream()
+                .filter(dette -> dette_id == dette.getId())
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void updateDette(Dette detteChoisie, int oldMontantVerse, int montantVerse, int montantRestant,
+            EtatService etatService) {
+        detteChoisie.setMontantVerse(oldMontantVerse + montantVerse);
+        detteChoisie.setMontantRestant(montantRestant);
+        if (montantRestant == 0) {
+            detteChoisie.setEtat(etatService.findByNom("SOLDEE"));
+        }
+        update(detteChoisie);
+    }
+
+    public boolean updateDetteClient(Client client, Dette detteChoisie, EtatService etatService) {
+        for (Dette dette : client.getDettes()) {
+            if (dette.equals(detteChoisie)) {
+                // MAJ des montants
+                dette.setMontantVerse(detteChoisie.getMontantVerse());
+                dette.setMontantRestant(detteChoisie.getMontantRestant());
+                // MAJ de l'état si la dette est soldée
+                if (dette.getMontantRestant() == 0) {
+                    dette.setEtat(etatService.findByNom("SOLDEE"));
+                }
+                // MAJ updatedAt
+                dette.setUpdatedAt(LocalDateTime.now());
+                // MAJ dette
+                update(dette);
+                // MAJ client
+                client.setUpdatedAt(LocalDateTime.now());
+                clientService.update(client);
+                return true;
+            }
         }
 
-        int montantVerse = saisirMontantVerse(montant);
-        Dette dette = new Dette(date, montant, montantVerse, client, details);
-        ajouterDetteAuClient(client, dette);
+        return false;
+    }
 
-        System.out.println("Dette créée avec succès !");
+    public List<Dette> listeDettesAnnulees() {
+        return list().stream()
+                .filter(dette -> dette.getEtat().getNom().compareTo("ANNULEE") == 0)
+                .toList();
+    }
+
+    public void archiverDettesSoldees(List<Dette> dettes) {
+        for (Dette dette : dettes) {
+            dette.setIsarchive(true);
+            dette.setUpdatedAt(LocalDateTime.now());
+            detteRepository.insert(dette);
+        }
+    }
+
+    public int defarMontant(List<Details> details) {
+        int montantTotal = details.stream()
+                .mapToInt(detail -> detail.getPrixTotal())
+                .sum();
+        return montantTotal;
+    }
+
+    public Dette defarDette(Client client, List<Details> details) {
+        int montantTotal = details.stream()
+                .mapToInt(detail -> detail.getPrixTotal())
+                .sum();
+        Dette dette = new Dette();
+        dette.setClient(client);
+        dette.setDetails(details);
+        dette.setMontant(montantTotal);
         return dette;
     }
 
@@ -56,97 +201,6 @@ public class DetteService {
         dettes.add(dette);
 
         clientBi.setDettes(dettes);
-    }
-
-    private String getDateSysteme() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
-        return dateFormat.format(new Date());
-    }
-
-    private int saisirMontantVerse(int montantTotal) {
-        int montantVerse = -1;
-        while (montantVerse < 0 || montantVerse > montantTotal) {
-            System.out.println("Veuillez saisir le montant versé par le client :");
-            if (scanner.hasNextInt()) {
-                montantVerse = scanner.nextInt();
-                if (montantVerse < 0) {
-                    System.out.println("Le montant versé ne peut pas être négatif.");
-                } else if (montantVerse > montantTotal) {
-                    System.out.println("Le montant versé ne peut pas dépasser le montant total de la dette.");
-                }
-            } else {
-                System.out.println("Entrée invalide. Veuillez saisir un nombre entier.");
-                scanner.next();
-            }
-        }
-        scanner.nextLine();
-        return montantVerse;
-    }
-
-    private List<Details> saisirDétailsArticles() {
-        List<Details> détails = new ArrayList<>();
-        List<Article> tousArticles = articleService.list();
-
-        while (true) {
-            afficherListeArticles(tousArticles);
-            Article articleChoisi = choisirArticle(tousArticles);
-
-            int quantité = saisirQuantitéArticle();
-
-            Details détail = new Details(articleChoisi, quantité);
-            détails.add(détail);
-
-            if (!demanderAjouterAutreArticle()) {
-                break;
-            }
-        }
-        return détails;
-    }
-
-    private void afficherListeArticles(List<Article> articles) {
-        System.out.println("Liste des articles disponibles :");
-        for (int i = 0; i < articles.size(); i++) {
-            Article article = articles.get(i);
-            System.out.println((i + 1) + ". " + article);
-        }
-    }
-
-    private Article choisirArticle(List<Article> articles) {
-        int choixArticle = -1;
-        while (choixArticle < 1 || choixArticle > articles.size()) {
-            System.out.println("Veuillez choisir l'article en entrant le chiffre correspondant :");
-            choixArticle = lireEntier();
-            if (choixArticle < 1 || choixArticle > articles.size()) {
-                System.out.println("Choix invalide. Veuillez entrer un chiffre correspondant à un article.");
-            }
-        }
-        return articles.get(choixArticle - 1);
-    }
-
-    private int saisirQuantitéArticle() {
-        int quantité = -1;
-        while (quantité <= 0) {
-            System.out.println("Veuillez saisir la quantité de l'article :");
-            quantité = lireEntier();
-            if (quantité <= 0) {
-                System.out.println("La quantité doit être un nombre positif.");
-            }
-        }
-        return quantité;
-    }
-
-    private boolean demanderAjouterAutreArticle() {
-        System.out.println("Voulez-vous ajouter un autre article ? (oui/non)");
-        String réponse = scanner.nextLine().trim().toLowerCase();
-        return réponse.equals("oui");
-    }
-
-    private int lireEntier() {
-        while (!scanner.hasNextInt()) {
-            System.out.println("Entrée invalide. Veuillez saisir un nombre entier.");
-            scanner.next();
-        }
-        return scanner.nextInt();
     }
 
 }
